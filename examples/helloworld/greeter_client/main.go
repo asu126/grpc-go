@@ -24,7 +24,7 @@ import (
 
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
-	pb "google.golang.org/grpc/examples/helloworld/helloworld"
+	pb "grpc-go/examples/helloworld/helloworld"
 )
 
 const (
@@ -51,4 +51,10 @@ func main() {
 		log.Fatalf("could not greet: %v", err)
 	}
 	log.Printf("Greeting: %s", r.Message)
+
+	r1, err := c.SayHelloAgain(context.Background(), &pb.HelloBytes{Message: []byte("request...")})
+	if err != nil {
+		log.Fatalf("could not greet: %v", err)
+	}
+	log.Printf("Greeting: %s", r1.Message)
 }
