@@ -21,13 +21,14 @@
 package main
 
 import (
+	"fmt"
 	"log"
 	"net"
 
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
-	pb "grpc-go/examples/helloworld/helloworld"
 	"google.golang.org/grpc/reflection"
+	pb "grpc-go/examples/helloworld/helloworld"
 )
 
 const (
@@ -45,6 +46,17 @@ func (s *server) SayHello(ctx context.Context, in *pb.HelloRequest) (*pb.HelloRe
 func (s *server) SayHelloAgain(ctx context.Context, in *pb.HelloBytes) (*pb.HelloBytes, error) {
 	b := []byte("123")
 	return &pb.HelloBytes{Message: b}, nil
+}
+
+// ServerStream(*HelloBytes, Greeter_ServerStreamServer) error
+func (s *server) ServerStream(in *pb.HelloBytes, stream pb.Greeter_ServerStreamServer) error {
+	fmt.Println("inputs %v", in)
+	for i := 0; i < 10; i++ {
+		s := fmt.Sprintf("%d", i)
+		stream.Send(&pb.HelloBytes{Message: []byte(s)})
+	}
+
+	return nil
 }
 
 func main() {

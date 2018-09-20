@@ -19,6 +19,7 @@
 package main
 
 import (
+	"io"
 	"log"
 	"os"
 
@@ -31,6 +32,25 @@ const (
 	address     = "localhost:50051"
 	defaultName = "world"
 )
+
+// server stream
+func printFeatures(client pb.GreeterClient, rec *pb.HelloBytes) {
+	log.Printf("Looking for features within %v", rec)
+	stream, err := client.ServerStream(context.Background(), rec)
+	if err != nil {
+		log.Fatalf("%v.ServerStream(_) = _, %v", client, err)
+	}
+	for {
+		feature, err := stream.Recv()
+		if err == io.EOF {
+			break
+		}
+		if err != nil {
+			log.Fatalf("%v.ServerStream(_) = _, %v", client, err)
+		}
+		log.Println(feature)
+	}
+}
 
 func main() {
 	// Set up a connection to the server.
@@ -57,4 +77,7 @@ func main() {
 		log.Fatalf("could not greet: %v", err)
 	}
 	log.Printf("Greeting: %s", r1.Message)
+
+	// 1
+	printFeatures(c, &pb.HelloBytes{Message: []byte("001")})
 }
