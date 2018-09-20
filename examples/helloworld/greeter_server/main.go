@@ -22,8 +22,10 @@ package main
 
 import (
 	"fmt"
+	"io"
 	"log"
 	"net"
+	// "time"
 
 	"golang.org/x/net/context"
 	"google.golang.org/grpc"
@@ -50,13 +52,34 @@ func (s *server) SayHelloAgain(ctx context.Context, in *pb.HelloBytes) (*pb.Hell
 
 // ServerStream(*HelloBytes, Greeter_ServerStreamServer) error
 func (s *server) ServerStream(in *pb.HelloBytes, stream pb.Greeter_ServerStreamServer) error {
-	fmt.Println("inputs %v", in)
+	fmt.Println("ServerStream inputs %v", in)
 	for i := 0; i < 10; i++ {
 		s := fmt.Sprintf("%d", i)
 		stream.Send(&pb.HelloBytes{Message: []byte(s)})
 	}
 
 	return nil
+}
+
+// ClientStream(Greeter_ClientStreamServer) error
+func (s *server) ClientStream(stream pb.Greeter_ClientStreamServer) error {
+	var count int
+	// startTime := time.Now()
+	for {
+		point, err := stream.Recv()
+		if err == io.EOF {
+			// endTime := time.Now()
+			s := fmt.Sprintf("toutal count: %d", count)
+			return stream.SendAndClose(&pb.HelloBytes{
+				Message: []byte(s),
+			})
+		}
+		if err != nil {
+			return err
+		}
+		fmt.Println("ClientStream get: %v", point)
+		count++
+	}
 }
 
 func main() {
