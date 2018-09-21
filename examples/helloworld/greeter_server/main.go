@@ -82,6 +82,26 @@ func (s *server) ClientStream(stream pb.Greeter_ClientStreamServer) error {
 	}
 }
 
+// ServerAndClientStream(Greeter_ServerAndClientStreamServer) error
+func (s *server) ServerAndClientStream(stream pb.Greeter_ServerAndClientStreamServer) error {
+	for {
+		in, err := stream.Recv()
+		if err == io.EOF {
+			return nil
+		}
+		if err != nil {
+			return err
+		}
+
+		fmt.Println("ClientStream get: %v", in)
+		for i := 0; i < 3; i++ {
+			s := fmt.Sprintf("ServerAndClientStream return: %d", i)
+			if err := stream.Send(&pb.HelloBytes{Message: []byte(s)}); err != nil {
+				return err
+			}
+		}
+	}
+}
 func main() {
 	lis, err := net.Listen("tcp", port)
 	if err != nil {

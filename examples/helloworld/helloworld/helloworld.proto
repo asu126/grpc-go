@@ -29,6 +29,8 @@ service Greeter {
   rpc ServerStream(HelloBytes) returns (stream HelloBytes) {}
   // 客户端流式 RPC
   rpc clientStream(stream HelloBytes) returns (HelloBytes) {}
+  // 双向流式 RPC
+  rpc ServerAndClientStream(stream HelloBytes) returns (stream HelloBytes) {}
 }
 
 // The request message containing the user's name.

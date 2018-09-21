@@ -79,6 +79,42 @@ func runRecordRoute(client pb.GreeterClient) {
 	log.Printf("Route summary: %v", reply)
 }
 
+// double stream
+func runRouteChat(client pb.GreeterClient) {
+	r := rand.New(rand.NewSource(time.Now().UnixNano()))
+	pointCount := int(r.Int31n(100)) + 2 // Traverse at least two points
+	fmt.Println("ServerAndClientStream client send %d", pointCount)
+
+	stream, err := client.ServerAndClientStream(context.Background())
+	if err != nil {
+		log.Fatalf("%v.ServerAndClientStream(_) = _, %v", client, err)
+	}
+	waitc := make(chan struct{})
+	go func() {
+		for {
+			in, err := stream.Recv()
+			if err == io.EOF {
+				// read done.
+				close(waitc)
+				return
+			}
+			if err != nil {
+				log.Fatalf("Failed to receive a note : %v", err)
+			}
+			log.Printf("Got message %s", in.Message)
+		}
+	}()
+	for i := 0; i < pointCount; i++ {
+		s := fmt.Sprintf("toutal count: %d", i)
+		point := pb.HelloBytes{Message: []byte(s)}
+		if err := stream.Send(&point); err != nil {
+			log.Fatalf("%v.Send(%v) = %v", stream, point, err)
+		}
+	}
+	stream.CloseSend()
+	<-waitc
+}
+
 func main() {
 	// Set up a connection to the server.
 	conn, err := grpc.Dial(address, grpc.WithInsecure())
@@ -110,4 +146,7 @@ func main() {
 
 	// ClientStream
 	runRecordRoute(c)
+
+	//
+	runRouteChat(c)
 }
