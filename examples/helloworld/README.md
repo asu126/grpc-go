@@ -60,3 +60,13 @@ protoc -I helloworld/ helloworld/helloworld.proto --go_out=plugins=grpc:hellowor
 
 [Google Protocol Buffer 的使用和原理](https://www.ibm.com/developerworks/cn/linux/l-cn-gpb/index.html)
 [官方文档](https://godoc.org/google.golang.org/grpc)
+
+### 遇到的一些问题及其解决方案
+1. gRPC的大消息传输:使用gRPC的一个问题是，它的默认最大消息大小默认被设置为4MB
+可以通过在创建Server的时候，配置相关的参数来扩大限制最小消息大小的值。
+```
+s := grpc.NewServer(grpc.MaxRecvMsgSize(size), grpc.MaxSendMsgSize(size))
+```
+MaxRecvMsgSize和MaxSendMsgSize分别设置服务器可以接收的最大消息大小和可以发送的最大消息大小（以字节为单位）。不设置的话默认都是4MB。
+
+2. 流方法（stream） -- https://blog.keyboardman.me/2018/08/06/large-messages-with-grpc/

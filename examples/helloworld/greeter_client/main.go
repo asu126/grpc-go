@@ -43,16 +43,22 @@ func printFeatures(client pb.GreeterClient, rec *pb.HelloBytes) {
 	if err != nil {
 		log.Fatalf("%v.ServerStream(_) = _, %v", client, err)
 	}
+	feature := new(pb.HelloBytes)
+	var blob []byte = make([]byte, 0)
 	for {
-		feature, err := stream.Recv()
+		msg, err := stream.Recv()
 		if err == io.EOF {
 			break
 		}
 		if err != nil {
 			log.Fatalf("%v.ServerStream(_) = _, %v", client, err)
 		}
-		log.Println(feature)
+
+		// log.Println(msg)
+		blob = append(blob, msg.Message...)
 	}
+	feature.Message = blob
+	log.Println(feature)
 }
 
 // client stream
@@ -142,11 +148,14 @@ func main() {
 	log.Printf("Greeting: %s", r1.Message)
 
 	// 1
+	fmt.Println("Server Stream .......")
 	printFeatures(c, &pb.HelloBytes{Message: []byte("001")})
 
 	// ClientStream
+	fmt.Println("Client Stream .......")
 	runRecordRoute(c)
 
-	//
+	// 双向 Stream
+	fmt.Println("双向 Stream .......")
 	runRouteChat(c)
 }

@@ -25,6 +25,7 @@ import (
 	"io"
 	"log"
 	"net"
+	"strings"
 	// "time"
 
 	"golang.org/x/net/context"
@@ -50,12 +51,61 @@ func (s *server) SayHelloAgain(ctx context.Context, in *pb.HelloBytes) (*pb.Hell
 	return &pb.HelloBytes{Message: b}, nil
 }
 
+// NewWriter turns sender into an io.Writer. The sender callback will
+// receive []byte arguments of length at most WriteBufferSize.
+func NewWriter(sender func(p []byte) error) io.Writer {
+	return &sendWriter{sender: sender}
+}
+
+// WriteBufferSize is the largest []byte that Write() will pass to its
+// underlying send function. This value can be changed at runtime using
+// the GITALY_STREAMIO_WRITE_BUFFER_SIZE environment variable.
+var WriteBufferSize = 2
+
+type sendWriter struct {
+	sender func([]byte) error
+}
+
+func (sw *sendWriter) Write(p []byte) (int, error) {
+	var sent int
+
+	for len(p) > 0 {
+		chunkSize := len(p)
+		if chunkSize > WriteBufferSize {
+			chunkSize = WriteBufferSize
+		}
+
+		if err := sw.sender(p[:chunkSize]); err != nil {
+			return sent, err
+		}
+
+		sent += chunkSize
+		p = p[chunkSize:]
+	}
+
+	return sent, nil
+}
+
 // ServerStream(*HelloBytes, Greeter_ServerStreamServer) error
 func (s *server) ServerStream(in *pb.HelloBytes, stream pb.Greeter_ServerStreamServer) error {
 	fmt.Println("ServerStream inputs %v", in)
-	for i := 0; i < 10; i++ {
-		s := fmt.Sprintf("%d", i)
-		stream.Send(&pb.HelloBytes{Message: []byte(s)})
+	// for i := 0; i < 10; i++ {
+	// 	s := fmt.Sprintf("%d", i)
+	// 	stream.Send(&pb.HelloBytes{Message: []byte(s)})
+	// }
+
+	blobReader := strings.NewReader("some io.Reader stream to be read")
+
+	sw := NewWriter(func(p []byte) error {
+		msg := &pb.HelloBytes{}
+		msg.Message = p
+		return stream.Send(msg)
+	})
+
+	_, err := io.CopyN(sw, blobReader, 10)
+	if err != nil {
+		// return status.Errorf(codes.Unavailable, "GetBlob: send: %v", err)
+		return err
 	}
 
 	return nil
